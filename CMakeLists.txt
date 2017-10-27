@@ -19,8 +19,8 @@ find_package( OpenCV REQUIRED )
 file(GLOB_RECURSE C4_FILE_LIB src/*.cpp)
 add_executable(C4cv ${C4_FILE_LIB})
 
-add_library(c4rule_S SHARED ${C4_FILE_LIB})
-add_library(c4rule STATIC ${C4_FILE_LIB})
+# add_library(c4rule_S SHARED ${C4_FILE_LIB})
+# add_library(c4rule STATIC ${C4_FILE_LIB})
 
 target_link_libraries( C4cv ${OpenCV_LIBS} )
 

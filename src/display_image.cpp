@@ -40,7 +40,7 @@ using namespace std;
 
 
 // TODO selector
-std::vector<std::vector<Point> >  get_piece(const Mat & blue_board_Game, bool display = true )
+std::vector<std::vector<Point> >  get_piece(const Mat & blue_board_Game, bool display = true, Mat* draw_in=NULL )
 {
   std::vector<std::vector<Point> > contours;
 
@@ -52,7 +52,13 @@ std::vector<std::vector<Point> >  get_piece(const Mat & blue_board_Game, bool di
   colors[1] = cv::Scalar(0, 255, 0);
   colors[2] = cv::Scalar(0, 0, 255);
 
-  Mat a(blue_board_Game.size(), CV_8UC3, cv::Scalar(0,0,0));
+  Mat a;
+
+  if (draw_in == NULL)
+    a= Mat(blue_board_Game.size(), CV_8UC3, cv::Scalar(0,0,0));
+  else
+    a = *draw_in;
+
   std::vector<std::vector<Point> > cntaa;
 
   for (size_t idx = 0; idx < contours.size(); idx++) {
@@ -68,12 +74,16 @@ std::vector<std::vector<Point> >  get_piece(const Mat & blue_board_Game, bool di
       if(area>20 && area < 200)
         {
           cntaa.push_back(contours[idx]);
-          if (display) {
+          if (display || draw_in != NULL) {
             cv::drawContours(a, contours, idx, colors[idx % 3]);
           }
         }
   }
-  imshow( "Remap", a);
+
+  if (display) {
+    namedWindow( "Remap", CV_WINDOW_NORMAL );
+    imshow( "Remap", a);
+  }
 
   return cntaa;
 }
@@ -103,13 +113,6 @@ int piece_color(Vec3b color)
 // get the center of function
 Point center(std::vector<Point> contour)
 {
-  // unsigned long int val_x=0;
-  // unsigned long int val_y=0;
-  // for (auto point : contour) {
-  //   val_x += point.x;
-  //   val_y += point.y;
-  // }
-
   auto a = cv::moments(contour);
   cout << a.m10/a.m00<<","<<a.m01/a.m00<<std::endl;
   int val_x=a.m10/a.m00;
@@ -120,7 +123,9 @@ Point center(std::vector<Point> contour)
 
 
 // isolate the board game with a contour
-cv::Rect isolate_Game(cv::Mat image_where_search_hsv, cv::Mat& empty_mat )
+std::vector<Point> isolate_Game(cv::Mat image_where_search_hsv,
+                      bool display=false,
+                      cv::Mat * draw_in = NULL)
 {
   cv::Mat blue_selection;
 
@@ -133,7 +138,12 @@ cv::Rect isolate_Game(cv::Mat image_where_search_hsv, cv::Mat& empty_mat )
   findContours( blue_selection, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
   RNG rng(12345);
 
-  Mat drawing = Mat::zeros( blue_selection.size(), CV_8UC3 );
+  Mat a;
+  if (draw_in == NULL)
+    a= Mat(image_where_search_hsv.size(), CV_8UC3, cv::Scalar(0,0,0));
+  else
+    a = *draw_in;
+
 
   unsigned int best_i = 0;
   double best = 0;
@@ -150,15 +160,28 @@ cv::Rect isolate_Game(cv::Mat image_where_search_hsv, cv::Mat& empty_mat )
 
   Scalar color1 = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
 
-
   auto t = boundingRect(contours[best_i]);
 
-  rectangle( drawing, t.tl(), t.br(), color1, 2, 8, 0 );
+  rectangle( a, t.tl(), t.br(), color1, 2, 8, 0 );
 
   Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-  drawContours( drawing, contours, best_i, color, 2, 8, hierarchy, 0, Point() );
+  drawContours( a, contours, best_i, color, 2, 8, hierarchy, 0, Point() );
 
-  return t;
+  //convex hull try
+  std::vector<Point> llo;
+  approxPolyDP(contours[best_i],llo,100,true);
+
+  std::vector<std::vector<Point> > elo;
+  elo.push_back(llo);
+
+  drawContours( a, elo, 0, Scalar(0,0,255), 2, 8, hierarchy, 0, Point() );
+  cout<<llo<<std::endl;
+  if(display){
+    namedWindow( "origin", CV_WINDOW_NORMAL );
+    imshow( "origin", a);
+  }
+
+  return llo;
 }
 
 
@@ -175,7 +198,33 @@ std::vector<Point>  centers(std::vector<std::vector<cv::Point> > contours) {
 
 }
 
-// main 
+// main
+void draw_supose_game(Vec<int,2> vy, Vec<int,2> vx, Point po, Mat* draw_in=NULL, bool display=false) {
+
+  // line
+  for (int i =0; i < 7; i++) {
+    for (int j = 0; j < 6; j++) {
+      if (i != 0) {
+        line(*draw_in,
+             po + (i-1) * Point(vx) + j * Point(vy) ,
+             po + i     * Point(vx) + j     * Point(vy) ,
+             Scalar(0,0,255));
+      }
+      if (j != 0) {
+        line(*draw_in,
+             po + i * Point(vx) + (j-1) * Point(vy) ,
+             po + i     * Point(vx) + j     * Point(vy) ,
+             Scalar(0,255,0));
+      }
+    }
+  }
+
+  if(display){
+    namedWindow( "origin", CV_WINDOW_NORMAL );
+    imshow( "origin", *draw_in);
+  }
+}
+
 int main( int argc, char** argv )
 {
 
@@ -202,7 +251,7 @@ int main( int argc, char** argv )
   cvtColor(imageblur,imagecvt , cv::COLOR_BGR2HSV);
 
   Mat undefm;
-  auto t = isolate_Game(imagecvt,undefm);
+  auto t = isolate_Game(imagecvt,false);
 
   // Matx<int,7,6> mat;
 
@@ -266,43 +315,29 @@ int main( int argc, char** argv )
   //     circle( image, center, radius, Scalar(0,0,255), 3, 8, 0 );
   //   }
 
-  // namedWindow( "input", CV_WINDOW_NORMAL );
-
-  // namedWindow( "B", CV_WINDOW_NORMAL );
-  // namedWindow( "R", CV_WINDOW_NORMAL );
-  // namedWindow( "G", CV_WINDOW_NORMAL );
-  // // namedWindow( "B", CV_WINDOW_NORMAL );
-
-  // imshow( "input", image );
-  // imshow( "input", a );
-  // //  imshow( "R", imageR );
-
-  // imshow( "input", imageblur );
-  // imshow( "R", imageR );
-  // imshow( "B", imageB );
-  // imshow( "G", imageG );
-
   Mat imageremap;
   std::vector<Point2f> p;
-  p.push_back(Point2f(10,10));
-  p.push_back(Point2f(190,10));
-  p.push_back(Point2f(10,190));
-  p.push_back(Point2f(190,190));
+  p.push_back(Point2f(2,2));
+  p.push_back(Point2f(198,2));
+  p.push_back(Point2f(2,198));
+  p.push_back(Point2f(198,198));
 
   std::vector<Point2f> p2;
-  p2.push_back(Point2f(t.tl()));
-  p2.push_back(Point2f(t.br().x, t.tl().y));
-  p2.push_back(Point2f(t.tl().x,t.br().y));
-  p2.push_back(Point2f(t.br()));
+  p2.push_back(Point2f(t[0]));
+  p2.push_back(Point2f(t[3]));
+  p2.push_back(Point2f(t[1]));
+  p2.push_back(Point2f(t[2]));
 
   auto M = getPerspectiveTransform(p2, p);
   warpPerspective(image,imageremap,M,Size(200,200));
 
-  //  namedWindow( "origin", CV_WINDOW_NORMAL );
-  //namedWindow( "Remap", CV_WINDOW_NORMAL );
+  // namedWindow( "omap", CV_WINDOW_NORMAL );
+  // imshow( "omap", image);
 
-  imshow( "origin", image );
-  imshow( "Remap", imageremap );
+  namedWindow( "map", CV_WINDOW_NORMAL );
+  imshow( "map", imageremap);
+  while(waitKey(0)!=10);
+
 
   //  blur(imageremap,imageblur,cv::Size(5,5));
   Mat imageR;
@@ -313,7 +348,8 @@ int main( int argc, char** argv )
 
   //Find the contours. Use the contourOutput Mat so the original image doesn't get overwritten
   //dilate(imageB, imageBr,Mat(),Point(-1,-1),2);
-  auto list_center = centers(get_piece(imageB,true));
+  Mat a(imageB.size(), CV_8UC3, cv::Scalar(0,0,0));
+  auto list_center = centers(get_piece(imageB,false ,&a));
 
   std::sort(list_center.begin(),
             list_center.end(),
@@ -334,14 +370,14 @@ int main( int argc, char** argv )
                     vx[1],vy[1]);
 
   Matx<float,2,2> m = v.inv();
-  Mat a(imageB.size(), CV_8UC3, cv::Scalar(0,0,0));
+
   cout << m << "\n";
 
-  line(a,po,px,Scalar(0,0,255));
-  line(a,po,py,Scalar(0,255,0));
 
-  cout <<"vx"<<vx  << "\n";
+  cout <<"vx"<< vx << "\n";
   cout <<"vy"<< vy << "\n";
+
+  draw_supose_game(vy, vx, po,&a,false);
 
   Matx<int,7,6> mat;
   Mat imagecvt2;
@@ -361,7 +397,7 @@ int main( int argc, char** argv )
     Vec3b colora = imagecvt2.at<Vec3b>(i);
 
     if(not( 0 <= x and x < 7 and
-            0 <=y and  y < 6 ))
+            0 <= y and  y < 6 ))
       {
         cout << "error size " <<x<<":"<<y<< "\n";
         continue;
@@ -371,9 +407,8 @@ int main( int argc, char** argv )
 
   }
 
-  cout << mat.t()<<std::endl;
+  cout << mat.t() << std::endl;
 
-  imshow( "origin", imageremap);
 
   while(waitKey(0)!=10);
 
