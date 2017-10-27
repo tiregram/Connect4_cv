@@ -21,9 +21,9 @@ void  color_filter(Mat image_in,
 
   cvtColor(image_in,imagecvt , cv::COLOR_BGR2HSV);
 
-  inRange(imagecvt, Scalar(  5,180,  0), Scalar( 25,255,255), imageR);
+  inRange(imagecvt, Scalar(  0,180,  0), Scalar( 30,255,255), imageR);
   inRange(imagecvt, Scalar( 34,100,  0), Scalar( 75,255,255), imageG);
-  inRange(imagecvt, Scalar(100,100,  0), Scalar(140,255,255), imageB);
+  inRange(imagecvt, Scalar(100,100,  70), Scalar(140,255,200), imageB);
 
   if(display){
     namedWindow( "B", CV_WINDOW_NORMAL );
@@ -70,8 +70,8 @@ std::vector<std::vector<Point> >  get_piece(const Mat & blue_board_Game, bool di
 
     approxPolyDP(contours[idx], approx, epsilon,true);
 
-    if(isContourConvex(approx))
-      if(area>20 && area < 200)
+    //    if(isContourConvex(approx))
+      if(area>300 && area < 2000)
         {
           cntaa.push_back(contours[idx]);
           if (display || draw_in != NULL) {
@@ -89,13 +89,14 @@ std::vector<std::vector<Point> >  get_piece(const Mat & blue_board_Game, bool di
 }
 
 
+
 // TODO with blue color
-int piece_color(Vec3b color)
+int get_piece_color(Vec3b color)
 {
 
-  if(7   < color[0] && color[0] < 25  &&
-     100 < color[1] && color[1] < 255 &&
-     0   < color[2] && color[2] < 255)
+  if(0   < color[0] && color[0] < 25  &&
+     170 < color[1] && color[1] < 255 &&
+     0   < color[2] && color[2] < 200)
     {
       return 1;
     }
@@ -114,13 +115,27 @@ int piece_color(Vec3b color)
 Point center(std::vector<Point> contour)
 {
   auto a = cv::moments(contour);
-  cout << a.m10/a.m00<<","<<a.m01/a.m00<<std::endl;
+
   int val_x=a.m10/a.m00;
   int val_y=a.m01/a.m00;
 
   return Point(val_x,val_y);
 }
 
+void set_correct_rotation_for_board(std::vector<cv::Point>& cnt)
+{
+  if(cnt.size() != 4)
+    {
+      throw "ERROR size need 4 but " + cnt.size();
+    }
+
+  if(not(cnt[3].x > cnt[1].x and cnt[3].y < cnt[1].y))
+    {
+      auto swap = cnt[3];
+      cnt[3] = cnt[1];
+      cnt[1] = swap;
+    }
+}
 
 // isolate the board game with a contour
 std::vector<Point> isolate_Game(cv::Mat image_where_search_hsv,
@@ -175,7 +190,6 @@ std::vector<Point> isolate_Game(cv::Mat image_where_search_hsv,
   elo.push_back(llo);
 
   drawContours( a, elo, 0, Scalar(0,0,255), 2, 8, hierarchy, 0, Point() );
-  cout<<llo<<std::endl;
   if(display){
     namedWindow( "origin", CV_WINDOW_NORMAL );
     imshow( "origin", a);
@@ -225,6 +239,86 @@ void draw_supose_game(Vec<int,2> vy, Vec<int,2> vx, Point po, Mat* draw_in=NULL,
   }
 }
 
+void remap_game(const Mat image,
+                Mat& imageremap,
+                const std::vector<Point>&  quadri,
+                cv::Size size,
+                int margin =2,
+                bool display=false) {
+
+
+
+  int h = size.height;
+  int w = size.width;
+
+  //build the matrix to go
+  std::vector<Point2f> matrix_destination;
+  matrix_destination.push_back(Point2f(margin,margin));
+  matrix_destination.push_back(Point2f(w-margin,margin));
+  matrix_destination.push_back(Point2f(margin,h-margin));
+  matrix_destination.push_back(Point2f(w-margin,h-margin));
+
+  // build the matrix were you are
+  std::vector<Point2f> matrix_source;
+  matrix_source.push_back(Point2f(quadri[0]));
+  matrix_source.push_back(Point2f(quadri[3]));
+  matrix_source.push_back(Point2f(quadri[1]));
+  matrix_source.push_back(Point2f(quadri[2]));
+
+  // opencv function to find the perspaective function
+  auto matrice_changement = getPerspectiveTransform(matrix_source, matrix_destination);
+
+  // wrap Perspaetive see the open cv doc
+  warpPerspective(image,imageremap,matrice_changement,size);
+
+
+
+  if(display){
+    namedWindow( "image_remap", CV_WINDOW_NORMAL );
+    imshow( "image_remap", imageremap);
+  }
+}
+
+std::vector<int>  get_board_value(std::vector<cv::Point>& list_center, Mat imageblur,bool display=false ) {
+
+
+  std::vector<int> board(6*7);
+  for (int i = 0; i < board.size(); i++) {
+    board[i]= 3;
+  }
+
+  cv::Mat color_rgb(1,list_center.size(),CV_8UC3);
+  cv::Mat color_hsv;
+
+  for(int i = 0 ; i < list_center.size(); i++)
+    {
+      color_rgb.at<cv::Vec3b>(i) =  imageblur.at<cv::Vec3b>(list_center[i]);
+    }
+
+  cvtColor(color_rgb,color_hsv,cv::COLOR_BGR2HSV);
+
+  for (int i = 0 ; i < list_center.size(); i++) {
+
+    int x = (list_center[i].x)/400.0*7;
+    int y = (list_center[i].y)/400.0*6;
+    Vec3b c =  color_hsv.at<cv::Vec3b>(i);
+
+    int value_board = get_piece_color(c);
+
+    std::string x_y_value = (//std::to_string(x)+","+
+                             //std::to_string(y)+"-"+
+                             std::to_string(value_board));
+
+    cv::putText(imageblur, x_y_value  , list_center[i], 1, 1, Scalar(255,255,0));
+
+    // avoid the blue detection
+    if(value_board != 3)
+      board[x+7*y] = value_board;
+  }
+  return board;
+  //  return board;
+}
+
 int main( int argc, char** argv )
 {
 
@@ -250,167 +344,56 @@ int main( int argc, char** argv )
   blur(image,imageblur,cv::Size(5,5));
   cvtColor(imageblur,imagecvt , cv::COLOR_BGR2HSV);
 
-  Mat undefm;
+  // find the game
   auto t = isolate_Game(imagecvt,false);
+  // correct rotation
+  set_correct_rotation_for_board(t);
 
-  // Matx<int,7,6> mat;
-
-
-  // for(auto i : list_center ){
-
-  //   Matx<int,2,1>  pi = (i-po);
-
-  //   Matx<float,2,1> p(pi);
-
-  //   Matx<int,2,1> aze = (m * p);
-
-  //   int x = (int) round(aze(0,0));
-  //   int y = (int) round(aze(1,0));
-
-  //   Vec3b colora = imagecvt.at<Vec3b>(i);
-
-  //   if(not( 0 <= x and x < 7 and
-  //           0 <=y and  y < 6 ))
-  //     {
-  //       cout << "error size " <<x<<":"<<y<< "\n";
-  //       continue;
-  //     }
-
-  //   mat(x,y) = piece_color(colora);
-
-  // }
-
-  // cout << mat.t()<<std::endl;
-
-
-
-  // for (int i = 0; i < list_center.size(); i++) {
-  //   line(a,list_center[i],list_center[i+1],colors[i%3]);
-  // }
-
-  // cv::drawContours(a, contours, top, colors[0 % 3]);
-  // cv::drawContours(a, contours, top2, colors[1 % 3]);
-
-
-  //  vector<Vec3f> circles;
-
-  //  /// Apply the Hough Transform to find the circles
-  //  for (int i = 50; i < 100; i= i+10) {
-  //    for (int j = 50; j < 100; j= j+10) {
-  //      HoughCircles( imageGr, circles, CV_HOUGH_GRADIENT, 1, 50 , i, j, 5, 500 );
-  //      std::cout << circles.size() << "\n";
-  //    }
-  // }
-  //  HoughCircles( imageR, circles, CV_HOUGH_GRADIENT, 1, 100, 200 , 18, 10, 300);
-
-  // std::cout << circles.size() << "\n";
-  // /// Draw the circles detected
-  // for( size_t i = 0; i < circles.size(); i++ )
-  //   {
-  //     Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-  //     int radius = cvRound(circles[i][2]);
-  //     // circle center
-  //     circle( image, center, 3, Scalar(0,255,0), -1, 8, 0 );
-  //     // circle outline
-  //     circle( image, center, radius, Scalar(0,0,255), 3, 8, 0 );
-  //   }
-
+  // remap
   Mat imageremap;
-  std::vector<Point2f> p;
-  p.push_back(Point2f(2,2));
-  p.push_back(Point2f(198,2));
-  p.push_back(Point2f(2,198));
-  p.push_back(Point2f(198,198));
+  remap_game(image,imageremap,t,cv::Size(400,400),2,false);
 
-  std::vector<Point2f> p2;
-  p2.push_back(Point2f(t[0]));
-  p2.push_back(Point2f(t[3]));
-  p2.push_back(Point2f(t[1]));
-  p2.push_back(Point2f(t[2]));
+  // can be blur
+  blur(imageremap,imageblur,cv::Size(10,10));
 
-  auto M = getPerspectiveTransform(p2, p);
-  warpPerspective(image,imageremap,M,Size(200,200));
-
-  // namedWindow( "omap", CV_WINDOW_NORMAL );
-  // imshow( "omap", image);
-
-  namedWindow( "map", CV_WINDOW_NORMAL );
-  imshow( "map", imageremap);
-  while(waitKey(0)!=10);
-
-
-  //  blur(imageremap,imageblur,cv::Size(5,5));
   Mat imageR;
   Mat imageG;
   Mat imageB;
 
-  color_filter(imageremap,imageB,imageR,imageG,true);
+  color_filter(imageblur,imageB,imageR,imageG,true);
 
-  //Find the contours. Use the contourOutput Mat so the original image doesn't get overwritten
+  //Find the contours. Use the contour Output Mat so the original image doesn't get overwritten
   //dilate(imageB, imageBr,Mat(),Point(-1,-1),2);
   Mat a(imageB.size(), CV_8UC3, cv::Scalar(0,0,0));
+
   auto list_center = centers(get_piece(imageB,false ,&a));
 
-  std::sort(list_center.begin(),
-            list_center.end(),
-            [](Point a,Point b)
-            {
-              return a.y * 10 + a.x < b.y *  10 + b.x;
-            }
-            );
+  auto board = get_board_value(list_center, imageblur);
 
-  Point po = list_center[0];
-  Point px = list_center[1];
-  Point py = list_center[7];
+  cout<< "╔═╦═╦═╦═╦═╦═╦═╗" <<std::endl;
 
-  Vec<int,2> vx = px- po;
-  Vec<int,2> vy = py- po;
+  for(int y = 0; y < 6 ;y++ )
+    {
+      cout << "║";
 
-  Matx<float,2,2> v(vx[0],vy[0],
-                    vx[1],vy[1]);
+      for(int x = 0; x <7 ;x++ )
+        {
+          int v = board[x+y*7];
+          std::string color_elem;
 
-  Matx<float,2,2> m = v.inv();
+          if(v ==3 )
+            color_elem = " ";
+          else if( v== 1)
+            color_elem= "\033[1;31m◉\033[0m";
+          else if( v== 2)
+            color_elem= "\033[1;32m◉\033[0m";
 
-  cout << m << "\n";
+          cout << color_elem << "║";
+        }
+      cout << "\n";
+    }
 
-
-  cout <<"vx"<< vx << "\n";
-  cout <<"vy"<< vy << "\n";
-
-  draw_supose_game(vy, vx, po,&a,false);
-
-  Matx<int,7,6> mat;
-  Mat imagecvt2;
-  cvtColor(imageremap,imagecvt2 , cv::COLOR_BGR2HSV);
-
-  for(auto i : list_center ){
-
-    Matx<int,2,1>  pi = (i-po);
-
-    Matx<float,2,1> p(pi);
-
-    Matx<int,2,1> aze = (m * p);
-
-    int x = (int) round(aze(0,0));
-    int y = (int) round(aze(1,0));
-
-    Vec3b colora = imagecvt2.at<Vec3b>(i);
-
-    if(not( 0 <= x and x < 7 and
-            0 <= y and  y < 6 ))
-      {
-        cout << "error size " <<x<<":"<<y<< "\n";
-        continue;
-      }
-
-    mat(x,y) = piece_color(colora);
-
-  }
-
-  cout << mat.t() << std::endl;
-
-
-  while(waitKey(0)!=10);
+  cout<< "╚═╩═╩═╩═╩═╩═╩═╝" <<std::endl;
 
   return 0;
 
