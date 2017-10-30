@@ -21,9 +21,9 @@ void  color_filter(Mat image_in,
 
   cvtColor(image_in,imagecvt , cv::COLOR_BGR2HSV);
 
-  inRange(imagecvt, Scalar(  0,180,  0), Scalar( 30,255,255), imageR);
-  inRange(imagecvt, Scalar( 34,100,  0), Scalar( 75,255,255), imageG);
-  inRange(imagecvt, Scalar(100,100,  70), Scalar(140,255,200), imageB);
+  inRange(imagecvt, Scalar(  3,100,  70), Scalar( 15,255,200), imageR);
+  inRange(imagecvt, Scalar( 30,75,  70), Scalar( 80,255,200), imageG);
+  inRange(imagecvt, Scalar(100,0,  0), Scalar(140,255,255), imageB);
 
   if(display){
     namedWindow( "B", CV_WINDOW_NORMAL );
@@ -94,16 +94,17 @@ std::vector<std::vector<Point> >  get_piece(const Mat & blue_board_Game, bool di
 int get_piece_color(Vec3b color)
 {
 
-  if(0   < color[0] && color[0] < 25  &&
-     170 < color[1] && color[1] < 255 &&
-     0   < color[2] && color[2] < 200)
+  if(3   < color[0] && color[0] < 15  &&
+     100 < color[1] && color[1] < 255 &&
+     50   < color[2] && color[2] < 200)
     {
       return 1;
     }
+
   // inRange(imagecvt, Scalar(34,100,0), Scalar(75,255,255) ,imageG);
-  if(34 < color[0] && color[0] < 75 &&
-     100  < color[1] && color[1] < 255 &&
-     0   < color[2] && color[2] < 255)
+  if(30 < color[0] && color[0] < 70 &&
+     75  < color[1] && color[1] < 255 &&
+     70   < color[2] && color[2] < 200)
     {
       return 2;
     }
@@ -122,19 +123,38 @@ Point center(std::vector<Point> contour)
   return Point(val_x,val_y);
 }
 
-void set_correct_rotation_for_board(std::vector<cv::Point>& cnt)
+std::vector<cv::Point> set_correct_rotation_for_board(const std::vector<cv::Point> &  cnt)
 {
+  std::vector<cv::Point> cnt_result(4);
+
   if(cnt.size() != 4)
     {
-      throw "ERROR size need 4 but " + cnt.size();
+      throw "ERROR size need 4 but " + std::to_string(cnt.size());
     }
 
-  if(not(cnt[3].x > cnt[1].x and cnt[3].y < cnt[1].y))
+  auto cnt_center = center(cnt);
+
+  for(auto& point : cnt)
     {
-      auto swap = cnt[3];
-      cnt[3] = cnt[1];
-      cnt[1] = swap;
+      auto vec = point - cnt_center;
+      int indice =-1;
+
+      if (vec.x > 0 and vec.y > 0)
+        indice = 0;
+
+      if (vec.x < 0 and vec.y > 0)
+        indice = 1;
+
+      if (vec.x < 0 and vec.y < 0)
+        indice = 2;
+
+      if (vec.x > 0 and vec.y < 0)
+        indice = 3;
+
+      cnt_result[indice] =point;
     }
+
+  return cnt_result;
 }
 
 // isolate the board game with a contour
@@ -144,7 +164,7 @@ std::vector<Point> isolate_Game(cv::Mat image_where_search_hsv,
 {
   cv::Mat blue_selection;
 
-  inRange(image_where_search_hsv, Scalar(100,100,0), Scalar(130,255,255) ,blue_selection);
+  inRange(image_where_search_hsv, Scalar(100,20,20), Scalar(140,255,230) ,blue_selection);
 
 
   vector<vector<Point> > contours;
@@ -184,7 +204,7 @@ std::vector<Point> isolate_Game(cv::Mat image_where_search_hsv,
 
   //convex hull try
   std::vector<Point> llo;
-  approxPolyDP(contours[best_i],llo,100,true);
+  approxPolyDP(contours[best_i],llo,200,true);
 
   std::vector<std::vector<Point> > elo;
   elo.push_back(llo);
@@ -260,10 +280,10 @@ void remap_game(const Mat image,
 
   // build the matrix were you are
   std::vector<Point2f> matrix_source;
-  matrix_source.push_back(Point2f(quadri[0]));
+  matrix_source.push_back(Point2f(quadri[2]));
   matrix_source.push_back(Point2f(quadri[3]));
   matrix_source.push_back(Point2f(quadri[1]));
-  matrix_source.push_back(Point2f(quadri[2]));
+  matrix_source.push_back(Point2f(quadri[0]));
 
   // opencv function to find the perspaective function
   auto matrice_changement = getPerspectiveTransform(matrix_source, matrix_destination);
@@ -319,56 +339,7 @@ std::vector<int>  get_board_value(std::vector<cv::Point>& list_center, Mat image
   //  return board;
 }
 
-int main( int argc, char** argv )
-{
-
-  if( argc != 2)
-    {
-      cout <<" Usage: display_image ImageToLoadAndDisplay" << endl;
-      return -1;
-    }
-
-  Mat image;
-  Mat imageblur;
-  Mat imagecvt;
-
-  image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
-
-  if(! image.data )
-    {
-      cout <<  "Could not open or find the image" << std::endl ;
-      return -1;
-    }
-
-  // cvtColor(image,imageGr , cv::COLOR_BGR2GRAY);
-  blur(image,imageblur,cv::Size(5,5));
-  cvtColor(imageblur,imagecvt , cv::COLOR_BGR2HSV);
-
-  // find the game
-  auto t = isolate_Game(imagecvt,false);
-  // correct rotation
-  set_correct_rotation_for_board(t);
-
-  // remap
-  Mat imageremap;
-  remap_game(image,imageremap,t,cv::Size(400,400),2,false);
-
-  // can be blur
-  blur(imageremap,imageblur,cv::Size(10,10));
-
-  Mat imageR;
-  Mat imageG;
-  Mat imageB;
-
-  color_filter(imageblur,imageB,imageR,imageG,true);
-
-  //Find the contours. Use the contour Output Mat so the original image doesn't get overwritten
-  //dilate(imageB, imageBr,Mat(),Point(-1,-1),2);
-  Mat a(imageB.size(), CV_8UC3, cv::Scalar(0,0,0));
-
-  auto list_center = centers(get_piece(imageB,false ,&a));
-
-  auto board = get_board_value(list_center, imageblur);
+void print_board(std::vector<int> board) {
 
   cout<< "╔═╦═╦═╦═╦═╦═╦═╗" <<std::endl;
 
@@ -395,6 +366,77 @@ int main( int argc, char** argv )
 
   cout<< "╚═╩═╩═╩═╩═╩═╩═╝" <<std::endl;
 
+}
+
+int main_s( int argc, char** argv )
+{
+
+  if( argc != 2)
+    {
+      cout <<" Usage: display_image ImageToLoadAndDisplay" << endl;
+      return -1;
+    }
+
+  Mat image;
+  Mat imageblur;
+  Mat imagecvt;
+
+  image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
+
+  if(! image.data )
+    {
+      cout <<  "Could not open or find the image" << std::endl ;
+      return -1;
+    }
+
+  // cvtColor(image,imageGr , cv::COLOR_BGR2GRAY);
+  blur(image,imageblur,cv::Size(5,5));
+  cvtColor(imageblur,imagecvt , cv::COLOR_BGR2HSV);
+
+  // find the game
+  auto t = isolate_Game(imagecvt,true);
+
+  // correct rotation
+try {
+  auto t1 =set_correct_rotation_for_board(t);
+  // remap
+  Mat imageremap;
+
+  remap_game(image,
+             imageremap,
+             t1,
+             cv::Size(400,400),
+             20,
+             true);
+
+
+  // can be blur
+
+  blur(imageremap,imageblur,cv::Size(10,10));
+
+  Mat imageR;
+  Mat imageG;
+  Mat imageB;
+
+  color_filter(imageblur,imageB,imageR,imageG,true);
+
+  //Find the contours. Use the contour Output Mat so the original image doesn't get overwritten
+  //dilate(imageB, imageBr,Mat(),Point(-1,-1),2);
+  Mat a(imageB.size(), CV_8UC3, cv::Scalar(0,0,0));
+
+  auto list_center = centers(get_piece(imageB,true ,&a));
+
+  auto board = get_board_value(list_center, imageblur);
+
+  print_board(board);
+  while (10!=waitKey(0)) ;
   return 0;
+
+ } catch (std::string  a) {
+  while (10!=waitKey(0)) ;
+  cout<<a<<std::endl;
+ }
+
+  return 1;
 
 }
