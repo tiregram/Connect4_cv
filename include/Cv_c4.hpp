@@ -44,3 +44,4 @@ public:
 };
 
 std::ostream& operator<<(std::ostream&, const std::vector<CV_BOARD_STATE>& flx);
+

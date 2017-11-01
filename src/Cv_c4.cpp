@@ -7,15 +7,6 @@
 
 #include <iostream>
 
-bool operator<(const cv::Vec3b  a, cv::Vec3b b)
-{
-  if(a[0]< b[0] &&
-     a[1]< b[1] &&
-     a[2]< b[2])
-    return true;
-
-  return false;
-}
 
 Cv_c4::Cv_c4(const Cv_c4_option& opt):opt(opt) {
   std::cout <<"-> Init Opencv"  << "\n";
@@ -279,6 +270,9 @@ std::vector<cv::Point> Cv_c4::isolate_Game(const cv::Mat& image_where_search_hsv
   unsigned int best_i = 0;
   double best = 0;
 
+  if(contours.size() == 0)
+    throw "ERROR: no blue ellement detected";
+
   for( unsigned int i = 0; i< contours.size(); i++ )
     {
       double a = cv::contourArea(contours[i]);
@@ -292,7 +286,9 @@ std::vector<cv::Point> Cv_c4::isolate_Game(const cv::Mat& image_where_search_hsv
   //  auto t = cv::boundingRect(contours[best_i]);
 
   //convex hull try
+
   std::vector<cv::Point> llo;
+
   cv::approxPolyDP(contours[best_i],llo,this->opt.get_distance_value(),true);
 
   return llo;

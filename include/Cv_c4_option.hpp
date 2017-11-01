@@ -104,3 +104,4 @@ namespace std {
   ostream& operator <<(ostream& flx, const pair<cv::Vec3b,cv::Vec3b>& v);
   ostream& operator <<(ostream& c, const Cv_c4_option& t );
 }
+bool operator<(const cv::Vec3b  a, cv::Vec3b b);

@@ -47,3 +47,23 @@ if( NOT ${FOR_NAO})
   target_link_libraries(c4_cv_ut ${OpenCV_LIBS})
 
 endif( NOT ${FOR_NAO})
+
+
+if(${BUILD_CONFIG})
+  add_executable(c4_cv_config "exec/config.cpp")
+  target_include_directories(c4_cv_config PUBLIC "include")
+
+  target_link_libraries(c4_cv_config c4_cv)
+  target_link_libraries(c4_cv_config ${OpenCV_LIBS})
+
+endif(${BUILD_CONFIG})
+
+if(${BUILD_IP_CAM})
+  add_executable(c4_cv_ip_cam "exec/ip_cam.cpp")
+  target_include_directories(c4_cv_ip_cam PUBLIC "include")
+
+  target_link_libraries(c4_cv_ip_cam c4_cv)
+  target_link_libraries(c4_cv_ip_cam ${OpenCV_LIBS})
+
+endif(${BUILD_IP_CAM})
+

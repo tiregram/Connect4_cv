@@ -72,33 +72,51 @@ void update_callback_int(int a , void * v)
 
 void Cv_c4_option_helper::chose_blue(std::string img_path)
 {
-  auto color = std::make_pair(cv::Vec<int,3>(100,0,0),cv::Vec<int,3>(180,255,200));
   cv::Mat c = cv::imread(img_path, CV_LOAD_IMAGE_COLOR);
-  cv.opt.set_blue_board(chose(color,c));
+  this->chose_blue(c);
+
 }
 
 void Cv_c4_option_helper::chose_red(std::string img_path)
 {
-  auto color = std::make_pair(cv::Vec<int,3>(3,70,70),cv::Vec<int,3>(17,255,200));
   cv::Mat c = cv::imread(img_path, CV_LOAD_IMAGE_COLOR);
-  cv.opt.set_red_piece(chose(color,c));
+  this->chose_red(c);
 }
 
 void Cv_c4_option_helper::chose_green(std::string img_path)
 {
-  auto color = std::make_pair(cv::Vec<int,3>(30,50,50),cv::Vec<int,3>(50,255,200));
   cv::Mat c = cv::imread(img_path, CV_LOAD_IMAGE_COLOR);
-  cv.opt.set_green_piece(chose(color,c));
+  this->chose_green(c);
 }
 
 
 void Cv_c4_option_helper::chose_distance(std::string img_path)
 {
-  int d = 200;
   cv::Mat c = cv::imread(img_path, CV_LOAD_IMAGE_COLOR);
-  cv.opt.set_distance_value(chose_int(d,c));
+  this->chose_distance(c);
 }
 
+void Cv_c4_option_helper::chose_blue(cv::Mat m){
+  auto color = cv.opt.get_blue_board();
+  cv.opt.set_blue_board(chose(color,m));
+}
+
+void Cv_c4_option_helper::chose_green(cv::Mat m){
+  auto color = cv.opt.get_green_piece();
+  cv.opt.set_green_piece(chose(color,m));
+  }
+
+void Cv_c4_option_helper::chose_red(cv::Mat m){
+  auto color = cv.opt.get_red_piece();
+  cv.opt.set_red_piece(chose(color,m));
+}
+
+void Cv_c4_option_helper::chose_distance(cv::Mat m)
+{
+  int d = 200;
+  cv.opt.set_distance_value(chose_int(d,m));
+
+}
 
 std::pair<cv::Vec3b,cv::Vec3b>
 Cv_c4_option_helper::chose(std::pair<cv::Vec3b,cv::Vec3b> base, cv::Mat img)

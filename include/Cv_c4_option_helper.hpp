@@ -24,5 +24,10 @@ public:
   void chose_red(std::string img_path);
   void chose_distance(std::string img_path);
 
+  void chose_blue(cv::Mat m);
+  void chose_green(cv::Mat m);
+  void chose_red(cv::Mat m);
+  void chose_distance(cv::Mat m);
+
   virtual ~Cv_c4_option_helper();
 };

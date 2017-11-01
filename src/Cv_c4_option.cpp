@@ -22,9 +22,9 @@ Cv_c4_option::Cv_c4_option(std::pair<cv::Vec3b,cv::Vec3b> p_board_selector,
 
 
 Cv_c4_option::Cv_c4_option()
-  :Cv_c4_option(std::make_pair<cv::Vec3b,cv::Vec3b>(cv::Vec3b(3,10,70),cv::Vec3b(15,255,200)),
+  :Cv_c4_option(std::make_pair<cv::Vec3b,cv::Vec3b>(cv::Vec3b(100,0,0),cv::Vec3b(140,255,255)),
+                std::make_pair<cv::Vec3b,cv::Vec3b>(cv::Vec3b(3,10,70),cv::Vec3b(15,255,200)),
                 std::make_pair<cv::Vec3b,cv::Vec3b>(cv::Vec3b(30,75,70),cv::Vec3b(80,255,200)),
-                std::make_pair<cv::Vec3b,cv::Vec3b>(cv::Vec3b(100,0,0),cv::Vec3b(140,255,255)),
                 100,
                 5,
                 cv::Size(200,200),
@@ -193,9 +193,6 @@ void Cv_c4_option::load(std::string file_path) {
   std::cout << "fin de fichier"  << "\n";
 
   fs.close();
-
-
-
 }
 
 
@@ -212,12 +209,13 @@ bool Cv_c4_option::check_color() {
 bool Cv_c4_option::check_color_collision() {
   // no colition on red green blue
   return true;
-
 }
 
 bool Cv_c4_option::check_color_value() {
   // hsv range and min < max
-  return true;
+  return this->get_blue_board().first < this->get_blue_board().second &&
+    this->get_red_piece().first < this->get_red_piece().second &&
+    this->get_green_piece().first < this->get_green_piece().second;
 }
 
 
@@ -267,4 +265,14 @@ namespace std {
 
     return c;
   }
+}
+
+bool operator<(const cv::Vec3b  a, cv::Vec3b b)
+{
+  if(a[0]< b[0] &&
+     a[1]< b[1] &&
+     a[2]< b[2])
+    return true;
+
+  return false;
 }

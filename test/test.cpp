@@ -62,8 +62,8 @@ BOOST_AUTO_TEST_CASE(CV_helper_test)
 {
   Cv_c4_option opt;
 
-  //  std::string path_img="img/z2pro_print2_1.2M/IMG_20171027_175623.jpg";
-  std::string path_img="img/z2pro_print2_1.2M/IMG_20171027_175710.jpg";
+  std::string path_img="img/z2pro_print2_1.2M/IMG_20171027_175623.jpg";
+    //std::string path_img="img/z2pro_print2_1.2M/IMG_20171027_175710.jpg";
   Cv_c4_option_helper cv_h(opt);
 
   cv_h.chose_blue(path_img);
@@ -76,17 +76,17 @@ BOOST_AUTO_TEST_CASE(CV_helper_test)
 
   Cv_c4_option opt_l;
   opt_l.load("save.cvconf");
-
 }
 
 BOOST_AUTO_TEST_CASE(CV_predictTest)
 {
   Cv_c4_option opt;
+  opt.load("save.cvconf");
   Cv_c4 cv(opt);
 
   std::string path_img="img/z2pro_print2_1.2M/IMG_20171027_175623.jpg";
-  opt.set_distance_value(50);
-
-  auto a = cv.predict_board(path_img);
+  std::vector<CV_BOARD_STATE> a = cv.predict_board(path_img);
   std::cout <<a  << "\n";
 }
+
+
