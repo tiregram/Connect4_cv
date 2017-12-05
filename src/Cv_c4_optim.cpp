@@ -58,7 +58,7 @@ bool is_a_valid_evolution(Board_element_diff o,std::vector<CV_BOARD_STATE> b,CV_
     return false;
 
   // right color change
-  if (not ((o.v1 == VIDE || o.v1 == UNDEFINED) && (o.v2 == change_want)))
+  if (not ((o.v1 == CV_VIDE || o.v1 == CV_UNDEFINED) && (o.v2 == change_want)))
     {
       return  false;
     }
@@ -68,7 +68,7 @@ bool is_a_valid_evolution(Board_element_diff o,std::vector<CV_BOARD_STATE> b,CV_
   // not gravity for the bottom
   if(o.y != 5 )
     {
-      if(b[o.x+(o.y+1)*7] == VIDE)
+      if(b[o.x+(o.y+1)*7] == CV_VIDE)
          return false;
     }
 
@@ -78,25 +78,26 @@ bool is_a_valid_evolution(Board_element_diff o,std::vector<CV_BOARD_STATE> b,CV_
 std::vector<CV_BOARD_STATE> Cv_c4_optim::predict_next_board(std::vector<CV_BOARD_STATE> prev_game, unsigned int valid,unsigned int nb_echantillon, cv::VideoCapture& vc,CV_BOARD_STATE change_want) const {
 
   cv::Mat img;
-  while(1){
 
+  do{
     std::vector<CV_BOARD_STATE> b;
     std::vector<Board_element_diff> lapin;
 
-
-
     for (unsigned int i = 0; i < nb_echantillon; i++) {
-      //      std::cout << "______ try ______ "<< i << "\n";
+
+      //      std::cout << "______ try ______ " << i << "\n";
 
       std::vector<CV_BOARD_STATE> g;
       std::vector<Board_element_diff> d;
       std::vector<Board_element_diff> d_filter;
+
       auto f = std::bind(is_a_valid_evolution, std::placeholders::_1, prev_game,change_want);
+
       try{
 
         if(!vc.read(img)) {
-          std::cout << "No frame" << std::endl;
-          cv::waitKey();
+          std::cout << "No frame (WAIT KEY TO CONTINUE)" << std::endl;
+          cv::waitKey(0);
           continue;
         }
 
@@ -114,97 +115,53 @@ std::vector<CV_BOARD_STATE> Cv_c4_optim::predict_next_board(std::vector<CV_BOARD
       }
       catch(char const * a)
         {
-          std::cout << a << "\n";
+          std::cerr << "OPTIM: " << a << "\n";
+          continue;
         }
       catch(const std::string& a)
         {
-          std::cout << a << "\n";
+          std::cerr << "OPTIM: " << a << "\n";
+          continue;
         }
+
       if(d_filter.size() == 1)
         {
           merge(lapin, d_filter[0]);
         }
       else
         {
-          std::cout << "error df " << d_filter.size()<<std::endl;
+          std::cerr << "error df " << d_filter.size()<<std::endl;
+          continue;
         }
-
     }
 
     if(lapin.size()==0)
       {
-        //        std::cout <<"not board evolution"<<std::endl;
+        std::cerr <<"not board evolution detected"<<std::endl;
         continue;
       }
 
     //    std::cout << "evolution choice "<< lapin.size() <<"\n";
-
     std::sort(std::begin(lapin),std::end(lapin),[](Board_element_diff a ,Board_element_diff b){return a.n > b.n; });
 
     // check if the best are in the valid condition
     if(valid > lapin[0].n)
       {
-        //        std::cout << "not board with valid ";//+lapin[0].n+"/"+valid;
+        std::cerr << "not board with certitude  "
+                  << lapin[0].n
+                  << "/"
+                  << valid;
         continue;
       }
 
     // apply the evolution
     prev_game[lapin[0].x + lapin[0].y * 7] = lapin[0].v2;
+    break;
+  }
+  while(true);
 
     return prev_game;
-  }
 }
-
-
-void add(std::vector<int>& r,
-         std::vector<int>& g,
-         const std::vector<CV_BOARD_STATE>& new_prediction)
-{
-
-  for (int x = 0; x < 6; x++) {
-    for (int y = 0; y < 7; y++) {
-      CV_BOARD_STATE v = new_prediction[x+y*7];
-      if(v == RED)
-        r[x+y*7] ++ ;
-      if(v == GREEN)
-        g[x+y*7] ++;
-    }
-  }
-}
-
-
-
-
-void decide(std::vector<CV_BOARD_STATE>& decide,
-            const std::vector<int>& r,
-            const std::vector<int>& g,
-            unsigned int val_max_echantillon,
-            unsigned int val_acceptable_echantillon
-            )
-{
-  for (int x = 0; x < 6; x++) {
-    for (int y = 0; y < 7; y++) {
-      unsigned int vg = g[x+y*7];
-      unsigned int vr = r[x+y*7];
-      if (vg > val_acceptable_echantillon && vr > val_acceptable_echantillon )
-        {
-          if(vg>vr)
-            {decide[x+y*7] = GREEN;}
-          else
-            {decide[x+y*7] = RED;}
-        }
-      else if(vg>val_acceptable_echantillon)
-        {
-        decide[x+y*7] = GREEN;
-        }
-      else if (vr > val_acceptable_echantillon)
-        {
-        decide[x+y*7] = RED;
-        }
-    }
-  }
-}
-
 
 Cv_c4_optim::~Cv_c4_optim() {
 

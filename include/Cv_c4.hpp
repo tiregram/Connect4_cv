@@ -8,10 +8,10 @@
 #include "Cv_c4_option.hpp"
 
 enum CV_BOARD_STATE{
-  RED,
-  GREEN,
-  UNDEFINED,
-  VIDE,
+  CV_RED,
+  CV_GREEN,
+  CV_UNDEFINED,
+  CV_VIDE,
 };
 
 class Cv_c4
@@ -22,8 +22,8 @@ public:
   Cv_c4(const Cv_c4_option& opt);
   virtual ~Cv_c4();
 
-  std::vector<CV_BOARD_STATE> predict_board(cv::Mat image);
-  std::vector<CV_BOARD_STATE> predict_board(std::string img);
+  std::vector<CV_BOARD_STATE> predict_board(cv::Mat image) ;
+  std::vector<CV_BOARD_STATE> predict_board(std::string img) ;
   CV_BOARD_STATE get_piece_color(cv::Vec3b color);
 
   void remap_game(const cv::Mat& image,

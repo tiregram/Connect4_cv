@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include <opencv2/core.hpp>
+#include <opencv2/opencv.hpp>
 
 class Cv_c4_option
 {

@@ -24,7 +24,7 @@ std::vector<CV_BOARD_STATE> Cv_c4::predict_board(std::string img_path) {
 
   return  this->predict_board(image);
 }
-std::vector<CV_BOARD_STATE> Cv_c4::predict_board(cv::Mat image) {
+std::vector<CV_BOARD_STATE> Cv_c4::predict_board(cv::Mat image)  {
 
 
   cv::Mat imagecvt;
@@ -68,7 +68,7 @@ std::vector<CV_BOARD_STATE>  Cv_c4::get_board_value(std::vector<cv::Point>& list
   // TODO: out
   std::vector<CV_BOARD_STATE> board(6*7);
   for (unsigned int i = 0; i < board.size(); i++) {
-    board[i]= VIDE;
+    board[i]= CV_VIDE;
   }
 
   // board collect position and value /////////////////////////////////////////
@@ -97,16 +97,16 @@ CV_BOARD_STATE Cv_c4::get_piece_color(cv::Vec3b color) {
   if(this->opt.get_red_piece().first  < color &&
      color < this->opt.get_red_piece().second )
         {
-          return RED;
+          return CV_RED;
         }
 
   if(this->opt.get_green_piece().first  < color &&
      color < this->opt.get_green_piece().second )
       {
-        return GREEN;
+        return CV_GREEN;
       }
 
-    return VIDE;
+    return CV_VIDE;
 }
 
 Cv_c4::~Cv_c4() {
@@ -126,11 +126,11 @@ std::ostream& operator <<(std::ostream& flx, const std::vector<CV_BOARD_STATE>& 
           int v = board[x+y*7];
           std::string color_elem;
 
-          if(v == VIDE || v == UNDEFINED )
+          if(v == CV_VIDE || v == CV_UNDEFINED )
             color_elem = " ";
-          else if( v == RED)
+          else if( v == CV_RED)
             color_elem= "\033[1;31m◉\033[0m";
-          else if( v == GREEN)
+          else if( v == CV_GREEN)
             color_elem= "\033[1;32m◉\033[0m";
 
           flx << color_elem << "║";
@@ -253,7 +253,7 @@ std::vector<std::vector<cv::Point> > Cv_c4::get_piece(const cv::Mat& blue_board_
   return cntaa;
 }
 
-std::vector<cv::Point> Cv_c4::isolate_Game(const cv::Mat& image_where_search_hsv)
+std::vector<cv::Point> Cv_c4::isolate_Game(const cv::Mat& image_where_search_hsv) 
 {
   cv::Mat blue_selection;
 
