@@ -10,9 +10,9 @@ find_package(OpenCV REQUIRED )
 include_directories("include")
 
 file(GLOB_RECURSE C4_FILE_LIB src/*.cpp)
-include_directories(${OpenCV_INLUDE_DIRS})
+include_directories(${OpenCV_INCLUDE_DIRS})
 add_library(c4_cv SHARED ${C4_FILE_LIB})
-target_link_libraries(c4_cv ${OpenCV_LINKS})
+target_link_libraries(c4_cv ${OpenCV_LIBS})
 
 if(${BUILD_IP_CAM})
   add_executable(c4_cv_ip_cam "exec/ip_cam.cpp")

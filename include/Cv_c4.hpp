@@ -18,6 +18,7 @@ class Cv_c4
 {
 public:
   Cv_c4_option opt;
+  Cv_c4() = delete;
 
   Cv_c4(const Cv_c4_option& opt);
   virtual ~Cv_c4();

@@ -6,10 +6,13 @@
 #include <opencv2/highgui.hpp>
 
 #include <iostream>
-
+#define DEBUG lapin
 
 Cv_c4::Cv_c4(const Cv_c4_option& opt):opt(opt) {
   std::cout <<"-> Init Opencv"  << "\n";
+  cv::namedWindow( "input", cv::WINDOW_NORMAL );
+  cv::namedWindow( "remap", cv::WINDOW_NORMAL );
+  cv::namedWindow("blue_board", cv::WINDOW_NORMAL );
 }
 
 std::vector<CV_BOARD_STATE> Cv_c4::predict_board(std::string img_path) {
@@ -24,17 +27,25 @@ std::vector<CV_BOARD_STATE> Cv_c4::predict_board(std::string img_path) {
 
   return  this->predict_board(image);
 }
+
+
 std::vector<CV_BOARD_STATE> Cv_c4::predict_board(cv::Mat image)  {
 
-
   cv::Mat imagecvt;
-  cv::Mat imageblur;
+  //  cv::Mat imageblur2;
+  cv::Mat imageblur1;
 
 
-  cvtColor(image,imagecvt , cv::COLOR_BGR2HSV);
+  cv::imshow("input",image);
+
+  cv::blur(image,imageblur1,cv::Size(5,5));
+
+  cvtColor(imageblur1,imagecvt , cv::COLOR_BGR2HSV);
 
   // find the game
   auto t = isolate_Game(imagecvt);
+
+
 
   // correct rotation
   auto t1 =set_correct_rotation_for_board(t);
@@ -45,8 +56,13 @@ std::vector<CV_BOARD_STATE> Cv_c4::predict_board(cv::Mat image)  {
              imageremap,
              t1);
 
+
   // can be blur
-  cv::blur(imageremap,imageblur,cv::Size(10,10));
+  //    cv::blur(imageremap,imageblur2,cv::Size(5,5));
+
+  cv::Mat fordisplay;
+  cvtColor(imageremap,fordisplay , cv::COLOR_HSV2BGR);
+  cv::imshow("remap",fordisplay);
 
   cv::Mat imageB;
 
@@ -243,7 +259,7 @@ std::vector<std::vector<cv::Point> > Cv_c4::get_piece(const cv::Mat& blue_board_
 
     cv::approxPolyDP(contours[idx], approx, epsilon,true);
 
-    if(area>50 && area < 1000)
+    if(area>50 && area < 1300)
       {
         cntaa.push_back(contours[idx]);
       }
@@ -290,6 +306,8 @@ std::vector<cv::Point> Cv_c4::isolate_Game(const cv::Mat& image_where_search_hsv
   std::vector<cv::Point> llo;
 
   cv::approxPolyDP(contours[best_i],llo,this->opt.get_distance_value(),true);
+
+  cv::imshow("blue_board",blue_selection);
 
   return llo;
 }

@@ -23,7 +23,7 @@ void base_run(Cv_c4 cv, cv::VideoCapture vcap) {
 
   cv::Mat image;
 
-  cv::namedWindow("Output Window", CV_WINDOW_NORMAL );
+  cv::namedWindow("Output Window", cv::WINDOW_NORMAL );
 
 
 
@@ -36,8 +36,9 @@ void base_run(Cv_c4 cv, cv::VideoCapture vcap) {
 
     clock_t begin = std::clock();
     try {
-      //      std::cout << cv.predict_board(image) << "\n";
-      cv.predict_board(image);
+            std::cout << cv.predict_board(image) << "\n";
+            //cv.predict_board(image);
+
     }
     catch (const char * a) {
       std::cout << a << "\n";
