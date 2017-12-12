@@ -33,27 +33,38 @@ If BUILD_IP_CAN are activate you will find a executable.
 
 IP_CAM:
 Two way:
-- hardware: /dev/video0 webcam
-- IP: tcp://128.39.75.111:3001
+-> hardware: /dev/video0 webcam
+-> IP: tcp://128.39.75.111:3001
 
 FILE_CONF:
-- this one is provide by default
+-> this one is provide by default on this repository over the name of save.cvconf
 
+content of this file
 ```json
 {
-"board":{[101, 115, 63],[145, 255, 255]},
-"piece_1":{[0, 67, 59],[17, 255, 255]},
-"piece_2":{[41, 64, 61],[87, 255, 255]},
-"distance":100,"blur":5,
-"size_remap":[400 x 400],
+"board":{[min_h,min_s,min_v],[max_h, max_s, max_v]},
+"piece_1":{[min_h,min_s,min_v],[max_h, max_s, max_v]},
+"piece_2":{[min_h,min_s,min_v],[max_h, max_s, max_v]},
+"distance":100,
+"blur":5,
+"size_remap":[200 x 200],
 "size_remap_margin":[5 x 5]
 }
 ```
 
  MODE: 3 modes are available.
- - config: to improve the config file
- - Base: to test without the security of prediction. 
- - optim: to follow the game
+ -> config: to improve the config file
+ -> Base: to test without the security of prediction. 
+ -> optim: to follow the game
+
+# run on nao over a connection
+Ssh on it and run this command to launch the camera on a tcp server.
+
+```bash
+gst-launch-0.10 -v v4l2src device=/dev/video1 ! video/x-raw-yuv,width=640,height=480,framerate=30/1 ! ffmpegcolorspace ! jpegenc ! multipartmux! tcpserversink port=3001
+```
+
+and after refer to the run section. 
 
 # contact 
 arthur margerit: ruhtra.mar@gmail.com
